@@ -1,26 +1,16 @@
 cmake_minimum_required(VERSION 3.12)
-
-set(PATCH_VERSION "1" CACHE INTERNAL "Patch version")
-set(PROJECT_VERSION 0.0.${PATCH_VERSION})
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+include(cmake/StandardProjectSettings.cmake)
 
 project(ip_filter VERSION ${PROJECT_VERSION})
 
-add_executable(ip_filter ip_filter.cpp)
+include(cmake/ProjectOptions.cmake)
 
-set_target_properties(ip_filter PROPERTIES
-    CXX_STANDARD 14
-    CXX_STANDARD_REQUIRED ON
-)
+include(cmake/FetchGTest.cmake)
+setup_gtest()
 
-if (MSVC)
-    target_compile_options(ip_filter PRIVATE
-        /W4
-    )
-else ()
-    target_compile_options(ip_filter PRIVATE
-        -Wall -Wextra -pedantic -Werror
-    )
-endif()
+add_subdirectory(src/ip_filter)
+add_subdirectory(tests)
 
 install(TARGETS ip_filter RUNTIME DESTINATION bin)
 

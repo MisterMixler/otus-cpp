@@ -1,0 +1,4 @@
+include_guard(GLOBAL)
+
+set(PATCH_VERSION "1" CACHE INTERNAL "Patch version")
+set(PROJECT_VERSION 0.0.${PATCH_VERSION})

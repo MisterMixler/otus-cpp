@@ -1,0 +1,3 @@
+add_executable(ip_filter_tests ip_filter_tests.cpp)
+target_link_libraries(ip_filter_tests PRIVATE ip_filter_lib GTest::gtest_main ProjectOptions)
+register_gtest_tests(ip_filter_tests)
