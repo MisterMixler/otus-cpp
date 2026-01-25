@@ -7,8 +7,18 @@ on:
       - feature/github_actions
 
 jobs:
-  build:
+  tests:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+      - run: cmake . -DPATCH_VERSION=${{ github.run_number }}
+      - run: cmake --build .
+      - run: ctest --output-on-failure
+  build_release:
+    runs-on: ubuntu-latest
+    needs: tests
     steps:
       - uses: actions/checkout@v2
         with:
