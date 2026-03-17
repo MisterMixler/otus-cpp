@@ -1,41 +1,18 @@
-# otus-cpp / lab3 — `stl_allocator`
+# otus-cpp / lab4 — `ip_print`
 
 ## Что реализовано в проекте
 
-В проекте собирается исполняемый файл **`stl_allocator`** (см. `src/stl_allocator`).
+В проекте собирается исполняемый файл **`ip_print`** (см. `src/ip_print`).
 
-- **`PoolAllocator<T, Capacity>`** (`src/stl_allocator/include/stl_allocator.h`)
-  - Простой пуловый аллокатор фиксированной ёмкости `Capacity` (в элементах).
-  - `allocate(n)` выдаёт непрерывный кусок из заранее выделенного буфера (bump allocator), увеличивая внутренний `offset`.
-  - `deallocate(...)` ничего не делает — память освобождается целиком при разрушении пула.
-  - Пул хранится в `std::shared_ptr`, поэтому копии аллокатора могут разделять один и тот же пул.
+- **`ip_print::print_ip(...)`** (`src/ip_print/include/print_ip.h`)
+  - Перегруженные шаблонные функции через SFINAE:
+    - целочисленные типы: печать побайтово от старшего к младшему через `.`
+    - строки: печать как есть
+    - `std::vector` / `std::list`: печать элементов через `.`
+    - `std::tuple` (опционально): печать элементов через `.`, компиляция только если все типы одинаковы
 
-- **`SimpleContainer<T, Alloc>`** (`src/stl_allocator/include/simple_container.h`)
-  - Учебный контейнер на односвязном списке (узлы `Node`), поддерживает:
-    - вставку `push_back` / `emplace_back`
-    - итераторы `iterator` / `const_iterator` (forward-итераторы)
-    - `size()`, `empty()`, `clear()`
-  - Аллокация узлов выполнена через `std::allocator_traits` и `rebind_alloc`, т.е. контейнер умеет работать с пользовательским аллокатором.
-
-- **Демонстрация в `main`** (`src/stl_allocator/main.cpp`)
-  - Заполняет `std::map<int,int>` значениями факториала для ключей 0..9:
-    - один раз с дефолтным аллокатором
-    - один раз с `PoolAllocator<std::pair<const int,int>, 10>`
-  - Создаёт `SimpleContainer<int>` с дефолтным аллокатором и `SimpleContainer<int, PoolAllocator<int, 10>>` с пуловым.
-
-## Что реализовано в тестах
-
-Папка `tests/` содержит GoogleTest-тесты:
-
-- **`PoolAllocatorTest.Requirements`** (`tests/pool_allocator_test.cpp`)
-  - Проверяет требования лабораторной:
-    - создание и заполнение `std::map<int,int>` (ключи `0..9`, значения — `factorial(key)`)
-    - создание и заполнение `std::map<int,int>` с `PoolAllocator<std::pair<const int,int>, 10>`
-    - вывод содержимого `std::map` в `stdout` в формате `key value` (через пробел), по одной строке на элемент
-    - создание и заполнение `SimpleContainer<int>` значениями `0..9`
-    - создание и заполнение `SimpleContainer<int, PoolAllocator<int, 10>>` значениями `0..9`
-    - вывод содержимого контейнера в `stdout`, по одному значению на строке
-  - Тест перехватывает `stdout` и сравнивает его с ожидаемым выводом построчно.
+- **Демонстрация в `main`** (`src/ip_print/main.cpp`)
+  - Содержит вызовы из условия лабораторной.
 
 ## Сборка и запуск
 
@@ -46,20 +23,19 @@ cmake -S . -B build
 cmake --build build
 ```
 
-После сборки бинарник будет в `build/stl_allocator` (в корневом `CMakeLists.txt` задан `RUNTIME_OUTPUT_DIRECTORY`).
+После сборки бинарник будет в `build/ip_print` (в корневом `CMakeLists.txt` задан `RUNTIME_OUTPUT_DIRECTORY`).
 
 ### Запуск
 
 ```bash
-./build/stl_allocator
+./build/ip_print
 ```
 
-## Тесты
+## Doxygen
 
 ```bash
 cmake -S . -B build
-cmake --build build
-ctest --test-dir build --output-on-failure
+cmake --build build --target doxygen
 ```
 
 ## CI / packaging
