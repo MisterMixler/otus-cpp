@@ -7,7 +7,7 @@ on:
       - feature/github_actions
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -73,19 +73,11 @@ jobs:
         with:
           submodules: true
 
-      - name: Install documentation dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y doxygen graphviz
-
       - name: Configure
         run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
 
       - name: Build
         run: cmake --build build
-
-      - name: Generate Doxygen docs
-        run: cmake --build build --target doxygen
 
       - name: Package (CPack)
         run: cmake --build build --target package
@@ -95,12 +87,6 @@ jobs:
           DEB_PATH="$(ls -1 build/*.deb | head -n 1)"
           echo "DEB_PATH=$DEB_PATH" >> "$GITHUB_ENV"
           echo "DEB_NAME=$(basename "$DEB_PATH")" >> "$GITHUB_ENV"
-
-      - name: Archive docs
-        run: |
-          tar -C build/docs -czf build/doxygen-html.tar.gz html
-          echo "DOCS_PATH=build/doxygen-html.tar.gz" >> "$GITHUB_ENV"
-          echo "DOCS_NAME=doxygen-html-${{ github.run_number }}.tar.gz" >> "$GITHUB_ENV"
 
       - name: Create Release
         id: create_release
@@ -122,13 +108,3 @@ jobs:
           asset_path: ${{ env.DEB_PATH }}
           asset_name: ${{ env.DEB_NAME }}
           asset_content_type: application/vnd.debian.binary-package
-
-      - name: Upload docs asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ env.DOCS_PATH }}
-          asset_name: ${{ env.DOCS_NAME }}
-          asset_content_type: application/gzip
