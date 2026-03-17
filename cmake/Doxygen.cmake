@@ -15,7 +15,11 @@ function(add_doxygen_target)
     set(DOXYGEN_OUT "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
   endif()
 
-  find_package(Doxygen REQUIRED)
+  find_package(Doxygen QUIET)
+  if(NOT DOXYGEN_FOUND)
+    message(STATUS "Doxygen not found: 'doxygen' target will not be available")
+    return()
+  endif()
 
   find_program(DOXYGEN_DOT_EXECUTABLE NAMES dot)
   if(DOXYGEN_DOT_EXECUTABLE)
