@@ -1,3 +1,3 @@
-add_executable(ip_filter_tests ip_filter_tests.cpp)
-target_link_libraries(ip_filter_tests PRIVATE ip_filter_lib GTest::gtest_main ProjectOptions)
-register_gtest_tests(ip_filter_tests)
+add_executable(pool_allocator_test pool_allocator_test.cpp)
+target_link_libraries(pool_allocator_test PRIVATE stl_allocator_lib GTest::gtest_main ProjectOptions)
+register_gtest_tests(pool_allocator_test)

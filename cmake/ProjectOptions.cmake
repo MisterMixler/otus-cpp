@@ -3,7 +3,7 @@ include_guard(GLOBAL)
 add_library(ProjectOptions INTERFACE)
 
 set_target_properties(ProjectOptions PROPERTIES
-    CXX_STANDARD 14
+    CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
 )
 
