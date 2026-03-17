@@ -1,36 +1,79 @@
-name: 'C++ CI'
+name: "C++ CI"
 
 on:
   push:
     branches:
-      - lab3
+      - lab4
       - feature/github_actions
 
 jobs:
-  tests:
+  build_and_docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
-      - run: cmake --build build
-      - run: ctest --test-dir build --output-on-failure
+
+      - name: Install documentation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Configure
+        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Run demo binary
+        run: ./build/ip_print
+
+      - name: Generate Doxygen docs
+        run: cmake --build build --target doxygen
+
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: doxygen-html
+          path: build/docs/html
+
   build_release:
     runs-on: ubuntu-latest
-    needs: tests
+    needs: build_and_docs
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
-      - run: cmake --build build
-      - run: cmake --build build --target package
+
+      - name: Install documentation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Configure
+        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Generate Doxygen docs
+        run: cmake --build build --target doxygen
+
+      - name: Package (CPack)
+        run: cmake --build build --target package
+
       - name: Locate deb package
         run: |
           DEB_PATH="$(ls -1 build/*.deb | head -n 1)"
           echo "DEB_PATH=$DEB_PATH" >> "$GITHUB_ENV"
           echo "DEB_NAME=$(basename "$DEB_PATH")" >> "$GITHUB_ENV"
+
+      - name: Archive docs
+        run: |
+          tar -C build/docs -czf build/doxygen-html.tar.gz html
+          echo "DOCS_PATH=build/doxygen-html.tar.gz" >> "$GITHUB_ENV"
+          echo "DOCS_NAME=doxygen-html-${{ github.run_number }}.tar.gz" >> "$GITHUB_ENV"
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -41,8 +84,8 @@ jobs:
           release_name: Release ${{ github.run_number }}
           draft: false
           prerelease: false
-      - name: Upload Release Asset
-        id: upload-release-asset
+
+      - name: Upload deb asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -51,3 +94,13 @@ jobs:
           asset_path: ${{ env.DEB_PATH }}
           asset_name: ${{ env.DEB_NAME }}
           asset_content_type: application/vnd.debian.binary-package
+
+      - name: Upload docs asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.DOCS_PATH }}
+          asset_name: ${{ env.DOCS_NAME }}
+          asset_content_type: application/gzip
