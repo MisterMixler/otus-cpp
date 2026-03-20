@@ -7,6 +7,8 @@ set_target_properties(ProjectOptions PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 
+target_compile_features(ProjectOptions INTERFACE cxx_std_20)
+
 if (MSVC)
     target_compile_options(ProjectOptions INTERFACE
         /W4
