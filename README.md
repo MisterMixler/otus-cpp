@@ -1,44 +1,40 @@
-# otus-cpp / lab4 — `ip_print`
+# otus-cpp / lab5 — `Editor`
 
-## Что реализовано в проекте
+Каркас простейшего векторного графического редактора (MVC).
 
-В проекте собирается исполняемый файл **`ip_print`** (см. `src/ip_print`).
+## Структура
 
-- **`ip_print::print_ip(...)`** (`src/ip_print/include/print_ip.h`)
-  - Перегруженные шаблонные функции через SFINAE:
-    - целочисленные типы: печать побайтово от старшего к младшему через `.`
-    - строки: печать как есть
-    - `std::vector` / `std::list`: печать элементов через `.`
-    - `std::tuple` (опционально): печать элементов через `.`, компиляция только если все типы одинаковы
-
-- **Демонстрация в `main`** (`src/ip_print/main.cpp`)
-  - Содержит вызовы из условия лабораторной.
-
-## Сборка и запуск
-
-### Сборка (out-of-source)
-
-```bash
-cmake -S . -B build
-cmake --build build
+```
+src/editor/
+├── include/
+│   ├── model/          # Модель: примитивы и документ
+│   │   ├── point.h
+│   │   ├── ishape.h    # Абстрактный примитив
+│   │   ├── circle.h
+│   │   ├── rectangle.h
+│   │   ├── line.h
+│   │   └── document.h  # Документ = коллекция примитивов
+│   ├── view/           # Представление
+│   │   ├── iview.h     # Абстрактное представление
+│   │   └── console_view.h
+│   ├── controller/     # Контроллер
+│   │   └── controller.h
+│   └── serialization/  # Импорт / экспорт
+│       ├── iserializer.h
+│       └── file_serializer.h
+└── main.cpp            # Точка входа + обработчики GUI
 ```
 
-После сборки бинарник будет в `build/ip_print` (в корневом `CMakeLists.txt` задан `RUNTIME_OUTPUT_DIRECTORY`).
-
-### Запуск
+## Сборка
 
 ```bash
-./build/ip_print
+mkdir build && cd build
+cmake ..
+cmake --build .
 ```
 
-## Doxygen
+## Запуск
 
 ```bash
-cmake -S . -B build
-cmake --build build --target doxygen
+./editor
 ```
-
-## CI / packaging
-
-В `.github/workflows/release.yml` используются команды `cmake`/`ctest` и сборка пакета (`cpack`).
-
