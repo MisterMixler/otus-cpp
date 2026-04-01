@@ -3,7 +3,7 @@ name: "C++ CI"
 on:
   push:
     branches:
-      - lab4
+      - lab5
       - feature/github_actions
 
 permissions:
@@ -35,7 +35,7 @@ jobs:
         run: cmake --build build
 
       - name: Run demo binary
-        run: ./build/ip_print
+        run: ./build/editor
 
       - name: Generate Doxygen docs
         run: cmake --build build --target doxygen
@@ -54,7 +54,7 @@ jobs:
   deploy_pages:
     runs-on: ubuntu-latest
     needs: build_and_docs
-    if: github.ref == 'refs/heads/lab4'
+    if: github.ref == 'refs/heads/lab5'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
