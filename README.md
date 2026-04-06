@@ -1,44 +1,36 @@
-# otus-cpp / lab4 — `ip_print`
+# otus-cpp / lab7 — `bulk` (packet command processor)
 
-## Что реализовано в проекте
+Утилита для пакетной обработки команд с консольным и файловым логированием.
 
-В проекте собирается исполняемый файл **`ip_print`** (см. `src/ip_print`).
-
-- **`ip_print::print_ip(...)`** (`src/ip_print/include/print_ip.h`)
-  - Перегруженные шаблонные функции через SFINAE:
-    - целочисленные типы: печать побайтово от старшего к младшему через `.`
-    - строки: печать как есть
-    - `std::vector` / `std::list`: печать элементов через `.`
-    - `std::tuple` (опционально): печать элементов через `.`, компиляция только если все типы одинаковы
-
-- **Демонстрация в `main`** (`src/ip_print/main.cpp`)
-  - Содержит вызовы из условия лабораторной.
-
-## Сборка и запуск
-
-### Сборка (out-of-source)
+## Сборка
 
 ```bash
 cmake -S . -B build
 cmake --build build
 ```
 
-После сборки бинарник будет в `build/ip_print` (в корневом `CMakeLists.txt` задан `RUNTIME_OUTPUT_DIRECTORY`).
-
-### Запуск
+## Использование
 
 ```bash
-./build/ip_print
+# Статические блоки по 3 команды
+echo -e "cmd1\ncmd2\ncmd3\ncmd4\ncmd5" | ./build/bulk 3
+
+# Динамические блоки
+echo -e "cmd1\ncmd2\n{\ncmd3\ncmd4\n}\ncmd5" | ./build/bulk 3
 ```
 
-## Doxygen
+## Архитектура
 
-```bash
-cmake -S . -B build
-cmake --build build --target doxygen
+Паттерн **Observer** обеспечивает низкую связанность модулей:
+
+| Модуль             | Ответственность                        |
+|--------------------|----------------------------------------|
+| `CommandProcessor` | Парсинг ввода, накопление блоков       |
+| `ConsoleLogger`    | Вывод блоков в `stdout`               |
+| `FileLogger`       | Сохранение блоков в `bulk*.log` файлы |
+| `IObserver`        | Интерфейс-контракт между модулями      |
+
 ```
-
-## CI / packaging
-
-В `.github/workflows/release.yml` используются команды `cmake`/`ctest` и сборка пакета (`cpack`).
-
+stdin → CommandProcessor → notify → ConsoleLogger → stdout
+                                  → FileLogger    → bulk*.log
+```

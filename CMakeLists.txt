@@ -2,14 +2,14 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(cmake/StandardProjectSettings.cmake)
 
-project(ip_print VERSION ${PROJECT_VERSION})
+project(bulk VERSION ${PROJECT_VERSION})
 
 include(cmake/ProjectOptions.cmake)
 
-add_subdirectory(src/ip_print)
+add_subdirectory(src/bulk)
 
-install(TARGETS ip_print RUNTIME DESTINATION bin)
-set_target_properties(ip_print PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+install(TARGETS bulk RUNTIME DESTINATION bin)
+set_target_properties(bulk PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 set(DOXYGEN_IN "${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in")
 set(DOXYGEN_OUT "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
