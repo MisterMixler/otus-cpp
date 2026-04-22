@@ -36,13 +36,10 @@ cmake --build build
 Пример:
 
 ```bash
-./build/SameFinder \
-  --scan . /var/log \
-  --exclude ./build ./.git \
-  --depth 5 \
-  --min-size 2 \
-  --mask "*.txt" "*.log" \
-  --block-size 4096 \
+./build/SameFinder --scan file_dir_for_tests \
+  --exclude file_dir_for_tests/excluded \
+  --depth 10 \
+  --block-size 5\
   --hash crc32
 ```
 
@@ -62,3 +59,5 @@ cmake --build build
   ленивое чтение, группировка) за функциями `collect_candidates()` / `find_duplicates()`.
 - **Pipeline / Refinement**: кандидаты последовательно “сужаются” стадиями
   *размер → хеш блока 0 → хеш блока 1 → ...*, что минимизирует лишние чтения.
+
+
