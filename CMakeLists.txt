@@ -2,14 +2,16 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(cmake/StandardProjectSettings.cmake)
 
-project(matrix VERSION ${PROJECT_VERSION})
+project(SameFinder VERSION ${PROJECT_VERSION})
 
 include(cmake/ProjectOptions.cmake)
 
-add_subdirectory(src/matrix)
+find_package(Boost REQUIRED COMPONENTS program_options filesystem system)
 
-install(TARGETS matrix RUNTIME DESTINATION bin)
-set_target_properties(matrix PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+add_subdirectory(src/SameFinder)
+
+install(TARGETS SameFinder RUNTIME DESTINATION bin)
+set_target_properties(SameFinder PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 set(DOXYGEN_IN "${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in")
 set(DOXYGEN_OUT "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
