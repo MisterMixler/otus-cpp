@@ -1,0 +1,5 @@
+SameFinder unique file
+
+This file should not match anything else.
+Timestamp-like line (but static): 2026-04-22
+

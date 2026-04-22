@@ -1,0 +1,4 @@
+masked duplicate (log)
+value=42
+path=/var/log/app.log
+

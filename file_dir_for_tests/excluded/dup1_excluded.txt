@@ -1,0 +1,9 @@
+SameFinder test file set
+========================
+
+This file is duplicated across the test tree.
+
+Line 1: The quick brown fox jumps over the lazy dog.
+Line 2: 0123456789
+Line 3: ABCDEFGHIJKLMNOPQRSTUVWXYZ
+
