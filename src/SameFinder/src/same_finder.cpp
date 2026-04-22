@@ -5,6 +5,7 @@
 #include <boost/uuid/detail/md5.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cstdint>
 #include <fstream>
@@ -90,44 +91,31 @@ std::vector<fs::path> normalize_dirs(const std::vector<std::string>& raw) {
 struct BlockHasher {
   HashAlgorithm algo = HashAlgorithm::Crc32;
 
-  std::string hash_block(const char* data, std::size_t n) const {
+  std::array<std::uint32_t, 4> hash_block(const char* data, std::size_t n) const {
     if (algo == HashAlgorithm::Crc32) {
       boost::crc_32_type crc;
       crc.process_bytes(data, n);
-      std::uint32_t v = crc.checksum();
-      static const char* hex = "0123456789abcdef";
-      constexpr std::size_t kNibbleBits = 4;
-      constexpr std::size_t kWordHexDigits = 8;
-
-      std::string s(kWordHexDigits, '0');
-      for (int i = static_cast<int>(kWordHexDigits) - 1; i >= 0; --i) {
-        s[static_cast<std::size_t>(i)] = hex[v & 0x0F];
-        v >>= kNibbleBits;
-      }
-      return s;
+      return {crc.checksum(), 0u, 0u, 0u};
     }
 
     boost::uuids::detail::md5 md5;
     md5.process_bytes(data, n);
     boost::uuids::detail::md5::digest_type digest{};
     md5.get_digest(digest);
+    return {digest[0], digest[1], digest[2], digest[3]};
+  }
+};
 
-    static const char* hex = "0123456789abcdef";
-    constexpr std::size_t kNibbleBits = 4;
-    constexpr std::size_t kWordHexDigits = 8;   // 32-bit word -> 8 hex digits
-    constexpr std::size_t kDigestWords = 4;      // md5 digest_type is 4x uint32_t
-    constexpr std::size_t kDigestHexDigits = kDigestWords * kWordHexDigits; // 32 chars
+using BlockHash = std::array<std::uint32_t, 4>;
 
-    std::string s(kDigestHexDigits, '0');
-    std::size_t pos = 0;
-    for (std::uint32_t w : digest) {
-      for (int i = static_cast<int>(kWordHexDigits) - 1; i >= 0; --i) {
-        s[pos + static_cast<std::size_t>(i)] = hex[w & 0x0F];
-        w >>= kNibbleBits;
-      }
-      pos += kWordHexDigits;
+struct BlockHashHasher {
+  std::size_t operator()(const BlockHash& h) const noexcept {
+    // Simple 64-bit mix. Good enough for bucketization.
+    std::size_t x = 0xcbf29ce484222325ULL;
+    for (std::uint32_t v : h) {
+      x ^= static_cast<std::size_t>(v) + 0x9e3779b97f4a7c15ULL + (x << 6) + (x >> 2);
     }
-    return s;
+    return x;
   }
 };
 
@@ -139,7 +127,7 @@ struct FileReader {
   BlockHasher hasher;
 
   std::ifstream stream;
-  std::vector<std::string> block_hashes; // computed lazily
+  std::vector<BlockHash> block_hashes; // computed lazily
 
   FileReader(fs::path p, std::uintmax_t sz, std::size_t bs, BlockHasher h)
       : path(std::move(p)), size(sz), block_size(bs), hasher(h) {
@@ -147,7 +135,7 @@ struct FileReader {
     block_hashes.reserve(blocks_total);
   }
 
-  const std::string& ensure_block_hash(std::size_t block_index) {
+  const BlockHash& ensure_block_hash(std::size_t block_index) {
     if (block_index < block_hashes.size()) {
       return block_hashes[block_index];
     }
@@ -212,8 +200,20 @@ std::vector<CandidateFile> collect_candidates(const Options& opt) {
       continue;
     }
 
-    fs::recursive_directory_iterator it(root), end;
-    for (; it != end; ++it) {
+    boost::system::error_code iter_ec;
+    fs::recursive_directory_iterator it(root, iter_ec), end;
+    if (iter_ec) {
+      continue;
+    }
+
+    while (it != end) {
+      auto advance = [&]() {
+        it.increment(iter_ec);
+        if (iter_ec) {
+          iter_ec.clear();
+        }
+      };
+
       const fs::path p = it->path();
 
       // Depth limiting: iterator.depth() is 0 for direct children of root.
@@ -233,19 +233,23 @@ std::vector<CandidateFile> collect_candidates(const Options& opt) {
         }
       }
       if (excluded) {
+        advance();
         continue;
       }
 
       if (!fs::is_regular_file(p)) {
+        advance();
         continue;
       }
 
-      boost::system::error_code ec;
-      const auto sz = fs::file_size(p, ec);
-      if (ec) {
+      boost::system::error_code fs_ec;
+      const auto sz = fs::file_size(p, fs_ec);
+      if (fs_ec) {
+        advance();
         continue;
       }
       if (sz < opt.min_size) {
+        advance();
         continue;
       }
       if (!opt.masks.empty()) {
@@ -258,11 +262,13 @@ std::vector<CandidateFile> collect_candidates(const Options& opt) {
           }
         }
         if (!ok) {
+          advance();
           continue;
         }
       }
 
       out.push_back(CandidateFile{fs::absolute(p).lexically_normal(), sz});
+      advance();
     }
   }
 
@@ -311,7 +317,7 @@ std::vector<std::vector<fs::path>> find_duplicates(const Options& opt,
           continue;
         }
 
-        std::unordered_map<std::string, std::vector<FileId>> buckets;
+        std::unordered_map<BlockHash, std::vector<FileId>, BlockHashHasher> buckets;
         buckets.reserve(g.ids.size());
 
         for (FileId id : g.ids) {

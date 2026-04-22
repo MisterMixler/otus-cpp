@@ -24,8 +24,7 @@ std::string to_lower_copy(std::string s) {
 
 Options parse_args(int argc, char** argv) {
   Options opt;
-
-  std::vector<std::string> hash_vec;
+  std::string hash;
 
   po::options_description desc("SameFinder options");
   desc.add_options()("help,h", "show help")(
@@ -44,8 +43,7 @@ Options parse_args(int argc, char** argv) {
       "allowed file name masks, e.g. \"*.txt\" \"*.cpp\" (case-insensitive)")(
       "block-size,b", po::value<std::size_t>(&opt.block_size)->default_value(4096),
       "block size S for reading (bytes)")(
-      "hash,H", po::value<std::vector<std::string>>(&hash_vec)->multitoken()->default_value({"crc32"},
-                                                                                           ""),
+      "hash,H", po::value<std::string>(&hash)->default_value("crc32"),
       "hash algorithm: crc32 | md5");
 
   po::variables_map vm;
@@ -66,8 +64,7 @@ Options parse_args(int argc, char** argv) {
     std::exit(2);
   }
 
-  // accept single value, but handle multitoken robustly
-  const std::string hash = hash_vec.empty() ? "crc32" : to_lower_copy(hash_vec.front());
+  hash = to_lower_copy(hash);
   if (hash == "crc32") {
     opt.hash = HashAlgorithm::Crc32;
   } else if (hash == "md5") {
