@@ -20,18 +20,15 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libboost-filesystem-dev libboost-program-options-dev
 
       - name: Configure
-        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }} -DBUILD_TESTING=ON
+        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }} -DBUILD_TESTING=OFF
 
       - name: Build
         run: cmake --build build
 
-      - name: Run tests
-        run: ctest --test-dir build --output-on-failure
-
       - name: Run smoke test
         run: ./build/SameFinder --help
 
-  build_release:
+  test:
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -50,6 +47,25 @@ jobs:
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
+
+  build_release:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libboost-filesystem-dev libboost-program-options-dev
+
+      - name: Configure
+        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }} -DBUILD_TESTING=OFF
+
+      - name: Build
+        run: cmake --build build
 
       - name: Package (CPack)
         run: cmake --build build --target package
