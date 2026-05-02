@@ -1,6 +1,7 @@
-# otus-cpp / lab 9 — пакет `async` (`libasync.so`)
+# otus-cpp / lab 10 — пакет `bulk_server`
 
-Библиотека пакетной обработки команд: API `async::connect` / `receive` / `disconnect` (см. `src/async/include/async.h`). Демо-сборка нагрузки: `src/async_stress/` → бинарник `async_stress`.
+Асинхронный TCP-сервер пакетной обработки команд на базе Boost.ASIO.
+Переиспользует библиотеку `async` (lab 9) и `bulk_processor` для парсинга команд.
 
 ## Сборка
 
@@ -9,39 +10,64 @@ cmake -S . -B build
 cmake --build build
 ```
 
-## Проверка
+## Запуск
 
 ```bash
-mkdir -p build/wd && cd build/wd && ../async_stress
+cd build
+./bulk_server <port> <bulk_size>
 ```
 
-В текущем каталоге появятся файлы `bulk{timestamp}_{seq}.log` и строки `bulk: ...` в stdout.
+Пример (один клиент):
+
+```bash
+./bulk_server 9000 3 &
+seq 0 9 | nc localhost 9000
+```
+
+Вывод:
+
+```
+bulk: 0, 1, 2
+bulk: 3, 4, 5
+bulk: 6, 7, 8
+bulk: 9
+```
+
+Два одновременных клиента:
+
+```bash
+# bulk_server <port> <bulk_size>
+./bulk_server 9000 3 &
+seq 0 9 | nc localhost 9000 &
+seq 10 19 | nc localhost 9000 &
+wait
+```
+
+Команды из статических блоков смешиваются между соединениями.
+Команды из динамических блоков (`{` … `}`) остаются изолированными для каждого соединения.
 
 ## Архитектура
 
-
-| Компонент        | Ответственность                                     |
-| ---------------- | --------------------------------------------------- |
-| `bulk_processor` | `CommandProcessor` — парсинг строк, блоки команд    |
-| `libasync`       | Очереди задач, потоки log / file1 / file2           |
-| `IObserver`      | Уведомление о готовом блоке (внутренняя постановка) |
-
+| Компонент          | Ответственность                                            |
+| ------------------ | ---------------------------------------------------------- |
+| `bulk_processor`   | `CommandProcessor` — парсинг строк, блоки команд           |
+| `libasync`         | Очереди задач, потоки log / file1 / file2 (lab 9)          |
+| `bulk_server`      | Boost.ASIO TCP-сервер, маршрутизация команд                |
+| `OutputObserver`   | Уведомление о готовом блоке → очереди log / file            |
 
 ```
-receive() → CommandProcessor → observer → очереди → потоки → stdout / bulk*.log
+TCP client ──► Session ──┬──► SharedProcessor (static) ──► OutputObserver ──► очереди ──► stdout / bulk*.log
+                         └──► per-session dynamic block ──► OutputObserver ──┘
 ```
 
 ## Паттерны проектирования
 
-
-| Паттерн               | Где проявляется                                                                                                                                                                                |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Observer**          | `CommandProcessor` при завершении блока вызывает `IObserver::onBlock`; реализация `QueueingObserver` не знает про потоки и только передаёт блок в рантайм (слабая связность парсера и вывода). |
-| **Singleton**         | `AsyncRuntime::instance()` — один на процесс набор очередей и рабочих потоков (локальная статическая переменная Meyers).                                                                       |
-| **Producer-Consumer** | Поток(и), вызывающие `receive`, формируют блоки и кладут задачи в `BlockingQueue`; потоки **log** и два файловых потока забирают задачи и пишут в консоль и файлы.                             |
-| **RAII**              | `std::lock_guard` / `std::unique_lock` для мьютексов контекста и очередей; в деструкторе `AsyncRuntime` — корректное завершение очередей и `join` потоков.                                     |
-| **Opaque handle**     | `async::handle_t` (`void `*) — внешнему коду возвращается непрозрачный контекст без доступа к внутренним типам библиотеки.                                                                     |
-
+| Паттерн               | Где проявляется                                                                                     |
+| --------------------- | --------------------------------------------------------------------------------------------------- |
+| **Observer**          | `CommandProcessor` → `IObserver::onBlock`; `OutputObserver` ставит задачи в очереди вывода.         |
+| **Producer-Consumer** | Сетевой поток формирует блоки → `BlockingQueue` → рабочие потоки log / file1 / file2.              |
+| **RAII**              | `shared_ptr<Session>` — время жизни сессии привязано к цепочке async-вызовов.                       |
+| **Proactor**          | Boost.ASIO `async_accept` / `async_read_some` — асинхронный ввод-вывод без блокировки.             |
 
 ## Пакет
 
@@ -49,4 +75,4 @@ receive() → CommandProcessor → observer → очереди → потоки 
 cmake --build build --target package
 ```
 
-Устанавливаются `libasync.so`, `async_stress`, заголовок `async.h`.
+Устанавливаются `bulk_server`, `libasync.so`, `async_stress`, заголовок `async.h`.

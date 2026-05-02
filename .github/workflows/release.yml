@@ -3,7 +3,7 @@ name: "C++ CI"
 on:
   push:
     branches:
-      - lab9
+      - lab10
       - feature/github_actions
 
 permissions:
@@ -23,10 +23,10 @@ jobs:
         with:
           submodules: true
 
-      - name: Install documentation dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y doxygen graphviz
+          sudo apt-get install -y doxygen graphviz libboost-dev
 
       - name: Configure
         run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
@@ -37,6 +37,17 @@ jobs:
       - name: Run smoke test (async_stress)
         run: |
           mkdir -p build/async_stress_cwd && cd build/async_stress_cwd && ../async_stress
+
+      - name: Run smoke test (bulk_server)
+        run: |
+          cd build
+          ./bulk_server 9876 3 &
+          SERVER_PID=$!
+          sleep 1
+          seq 0 9 | nc -q1 localhost 9876
+          sleep 1
+          kill $SERVER_PID || true
+          wait $SERVER_PID 2>/dev/null || true
 
       - name: Generate Doxygen docs
         run: cmake --build build --target doxygen
@@ -55,7 +66,7 @@ jobs:
   deploy_pages:
     runs-on: ubuntu-latest
     needs: build_and_docs
-    if: github.ref == 'refs/heads/lab9'
+    if: github.ref == 'refs/heads/lab10'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -73,6 +84,9 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: true
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libboost-dev
 
       - name: Configure
         run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
