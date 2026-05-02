@@ -10,6 +10,13 @@ find_package(Boost REQUIRED COMPONENTS program_options filesystem system)
 
 add_subdirectory(src/SameFinder)
 
+include(CTest)
+if (BUILD_TESTING)
+    include(cmake/FetchGTest.cmake)
+    setup_gtest()
+    add_subdirectory(tests)
+endif()
+
 install(TARGETS SameFinder RUNTIME DESTINATION bin)
 set_target_properties(SameFinder PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 

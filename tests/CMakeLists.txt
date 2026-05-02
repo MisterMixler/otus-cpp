@@ -1,3 +1,3 @@
-add_executable(pool_allocator_test pool_allocator_test.cpp)
-target_link_libraries(pool_allocator_test PRIVATE stl_allocator_lib GTest::gtest_main ProjectOptions)
-register_gtest_tests(pool_allocator_test)
+add_executable(same_finder_test same_finder_test.cpp)
+target_link_libraries(same_finder_test PRIVATE SameFinderLib GTest::gtest_main ProjectOptions)
+register_gtest_tests(same_finder_test)

@@ -16,6 +16,14 @@ cmake -S . -B build
 cmake --build build
 ```
 
+## Тесты
+
+```bash
+cmake -S . -B build -DBUILD_TESTING=ON
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
 ## Использование
 
 Все параметры задаются через CLI. Справка:
@@ -39,7 +47,7 @@ cmake --build build
 ./build/SameFinder --scan file_dir_for_tests \
   --exclude file_dir_for_tests/excluded \
   --depth 10 \
-  --block-size 5\
+  --block-size 5 \
   --hash crc32
 ```
 

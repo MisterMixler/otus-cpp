@@ -20,10 +20,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libboost-filesystem-dev libboost-program-options-dev
 
       - name: Configure
-        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
+        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }} -DBUILD_TESTING=ON
 
       - name: Build
         run: cmake --build build
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
 
       - name: Run smoke test
         run: ./build/SameFinder --help
@@ -40,10 +43,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libboost-filesystem-dev libboost-program-options-dev
 
       - name: Configure
-        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
+        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }} -DBUILD_TESTING=ON
 
       - name: Build
         run: cmake --build build
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
 
       - name: Package (CPack)
         run: cmake --build build --target package
