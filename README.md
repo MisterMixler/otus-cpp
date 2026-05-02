@@ -1,6 +1,6 @@
-# otus-cpp / lab7 — `bulk` (packet command processor)
+# otus-cpp / lab 9 — пакет `async` (`libasync.so`)
 
-Утилита для пакетной обработки команд с консольным и файловым логированием.
+Библиотека пакетной обработки команд: API `async::connect` / `receive` / `disconnect` (см. `src/async/include/async.h`). Демо-сборка нагрузки: `src/async_stress/` → бинарник `async_stress`.
 
 ## Сборка
 
@@ -9,28 +9,44 @@ cmake -S . -B build
 cmake --build build
 ```
 
-## Использование
+## Проверка
 
 ```bash
-# Статические блоки по 3 команды
-echo -e "cmd1\ncmd2\ncmd3\ncmd4\ncmd5" | ./build/bulk 3
-
-# Динамические блоки
-echo -e "cmd1\ncmd2\n{\ncmd3\ncmd4\n}\ncmd5" | ./build/bulk 3
+mkdir -p build/wd && cd build/wd && ../async_stress
 ```
+
+В текущем каталоге появятся файлы `bulk{timestamp}_{seq}.log` и строки `bulk: ...` в stdout.
 
 ## Архитектура
 
-Паттерн **Observer** обеспечивает низкую связанность модулей:
 
-| Модуль             | Ответственность                        |
-|--------------------|----------------------------------------|
-| `CommandProcessor` | Парсинг ввода, накопление блоков       |
-| `ConsoleLogger`    | Вывод блоков в `stdout`               |
-| `FileLogger`       | Сохранение блоков в `bulk*.log` файлы |
-| `IObserver`        | Интерфейс-контракт между модулями      |
+| Компонент        | Ответственность                                     |
+| ---------------- | --------------------------------------------------- |
+| `bulk_processor` | `CommandProcessor` — парсинг строк, блоки команд    |
+| `libasync`       | Очереди задач, потоки log / file1 / file2           |
+| `IObserver`      | Уведомление о готовом блоке (внутренняя постановка) |
+
 
 ```
-stdin → CommandProcessor → notify → ConsoleLogger → stdout
-                                  → FileLogger    → bulk*.log
+receive() → CommandProcessor → observer → очереди → потоки → stdout / bulk*.log
 ```
+
+## Паттерны проектирования
+
+
+| Паттерн               | Где проявляется                                                                                                                                                                                |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Observer**          | `CommandProcessor` при завершении блока вызывает `IObserver::onBlock`; реализация `QueueingObserver` не знает про потоки и только передаёт блок в рантайм (слабая связность парсера и вывода). |
+| **Singleton**         | `AsyncRuntime::instance()` — один на процесс набор очередей и рабочих потоков (локальная статическая переменная Meyers).                                                                       |
+| **Producer-Consumer** | Поток(и), вызывающие `receive`, формируют блоки и кладут задачи в `BlockingQueue`; потоки **log** и два файловых потока забирают задачи и пишут в консоль и файлы.                             |
+| **RAII**              | `std::lock_guard` / `std::unique_lock` для мьютексов контекста и очередей; в деструкторе `AsyncRuntime` — корректное завершение очередей и `join` потоков.                                     |
+| **Opaque handle**     | `async::handle_t` (`void `*) — внешнему коду возвращается непрозрачный контекст без доступа к внутренним типам библиотеки.                                                                     |
+
+
+## Пакет
+
+```bash
+cmake --build build --target package
+```
+
+Устанавливаются `libasync.so`, `async_stress`, заголовок `async.h`.

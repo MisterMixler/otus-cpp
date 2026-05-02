@@ -3,7 +3,7 @@ name: "C++ CI"
 on:
   push:
     branches:
-      - lab7
+      - lab9
       - feature/github_actions
 
 permissions:
@@ -34,9 +34,9 @@ jobs:
       - name: Build
         run: cmake --build build
 
-      - name: Run smoke test (static blocks)
+      - name: Run smoke test (async_stress)
         run: |
-          printf 'cmd1\ncmd2\ncmd3\ncmd4\ncmd5\n' | ./build/bulk 3
+          mkdir -p build/async_stress_cwd && cd build/async_stress_cwd && ../async_stress
 
       - name: Generate Doxygen docs
         run: cmake --build build --target doxygen
